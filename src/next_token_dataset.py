@@ -13,31 +13,30 @@ def resolve_eos_token_id(tokenizer) -> int:
 class NextTokenDataset(Dataset):
     """
     Пары (X, Y), где:
-      X = токены [i : i+seq_len]
-      Y = токены [i+1 : i+1+seq_len]
+      X = токены [i : i+seq_size]
+      Y = токены [i+1 : i+1+seq_size]
     По желанию добавляем EOS в конец каждого текста. stride — шаг окна.
     """
     def __init__(self,
                  texts,
                  tokenizer,
-                 seq_len: int = 7,
+                 seq_size: int = 7,
                  max_length: int = 512,
                  *,
-                 add_eos: bool = True,
                  stride: int = 1):
         assert stride >= 1, "stride должен быть >= 1"
         self.samples = []
-        self.seq_len = seq_len
+        self.seq_size = seq_size
         self.stride = stride
 
-        eos_id = resolve_eos_token_id(tokenizer) if add_eos else None
+        eos_id = resolve_eos_token_id(tokenizer)
 
         for line in tqdm(texts):
             if line is None:
                 continue
 
             # если планируем добавить EOS — оставим под него место
-            trunc_to = max_length - (1 if add_eos else 0)
+            trunc_to = max_length - 1
             token_ids = tokenizer.encode(
                 str(line),
                 add_special_tokens=False,
@@ -45,18 +44,17 @@ class NextTokenDataset(Dataset):
                 truncation=True,
             )
 
-            if add_eos:
-                token_ids.append(eos_id)
+            token_ids.append(eos_id)
 
-            # нужно как минимум seq_len+1 токенов, чтобы X и Y были длиной seq_len
-            if len(token_ids) < seq_len + 1:
+            # нужно как минимум seq_size+1 токенов, чтобы X и Y были длиной seq_size
+            if len(token_ids) < seq_size + 1:
                 continue
 
             # скользящее окно со stride
-            for i in range(0, len(token_ids) - seq_len, stride):
-                x = token_ids[i: i + seq_len]
-                y = token_ids[i + 1: i + 1 + seq_len]
-                if len(y) == seq_len:
+            for i in range(0, len(token_ids) - seq_size, stride):
+                x = token_ids[i: i + seq_size]
+                y = token_ids[i + 1: i + 1 + seq_size]
+                if len(y) == seq_size:
                     self.samples.append((x, y))
 
     def __len__(self):

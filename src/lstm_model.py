@@ -75,18 +75,11 @@ class NextTokenLSTM(nn.Module):
         seq_size: int,
         max_new_tokens: int = 50,
         device: torch.device | str = "cpu",
-        strategy: str = "greedy",     # "greedy" | "sample"
-        temperature: float = 1.0,     # >0; влияет только при strategy="sample"
-        top_k: int | None = None,     # обрезка распределения (sample)
         pad_left_id: int | None = None,
     ) -> list[int]:
         """
         Генерируем токены, пока не встретим eos_id или не превысим max_new_tokens.
         На каждом шаге берём logits для последнего таймстепа: logits[:, -1, :].
-
-        strategy="greedy": берём argmax (температура НЕ влияет).
-        strategy="sample": применяем softmax( logits / temperature ), опционально top-k,
-                           и сэмплируем один токен.
         """
         self.eval()
         device = torch.device(device)
@@ -102,19 +95,7 @@ class NextTokenLSTM(nn.Module):
             logits = self.forward(x)          # [1,T,V]
             next_logits = logits[:, -1, :]    # [1,V]
 
-            if strategy == "sample":
-                # temperature: масштабируем «остроту» распределения
-                scaled = next_logits / max(1e-6, temperature)
-                if top_k is not None and top_k > 0:
-                    k = min(top_k, scaled.size(-1))
-                    vals, idxs = torch.topk(scaled, k)               # [1,k], [1,k]
-                    probs = F.softmax(vals, dim=-1)                   # [1,k]
-                    next_id = idxs[0, torch.multinomial(probs[0], 1)].item()
-                else:
-                    probs = F.softmax(scaled, dim=-1)                 # [1,V]
-                    next_id = torch.multinomial(probs[0], 1).item()
-            else:  # "greedy"
-                next_id = torch.argmax(next_logits, dim=-1).item()
+            next_id = torch.argmax(next_logits, dim=-1).item()
 
             seq.append(next_id)
             if next_id == eos_id:
