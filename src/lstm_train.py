@@ -1,33 +1,8 @@
 import math
-import torch
 from torch.nn.utils import clip_grad_norm_
 from tqdm import tqdm
 
-@torch.no_grad()
-def evaluate_next_token(model, val_loader, device, criterion, pad_idx=0):
-    model.eval()
-    total_loss, total_tokens = 0.0, 0
-    total_correct = 0
-
-    for x_batch, y_batch in tqdm(val_loader):
-        x_batch = x_batch.to(device)         # [B,T]
-        y_batch = y_batch.to(device)         # [B,T]
-        logits = model(x_batch)              # [B,T,V]
-
-        B, T, V = logits.shape
-        loss = criterion(logits.reshape(-1, V), y_batch.reshape(-1))
-        total_loss += loss.item()
-
-        # token-acc по непаддингам
-        with torch.no_grad():
-            pred = logits.argmax(dim=-1)     # [B,T]
-            mask = (y_batch != pad_idx)
-            total_correct += (pred.eq(y_batch) & mask).sum().item()
-            total_tokens  += mask.sum().item()
-
-    val_loss = total_loss / max(1, len(val_loader))
-    val_acc  = (total_correct / max(1, total_tokens)) if total_tokens > 0 else 0.0
-    return val_loss, val_acc
+from eval_lstm import evaluate_next_token
 
 
 def train_next_token(
@@ -41,7 +16,6 @@ def train_next_token(
     max_grad_norm=1.0,
     patience=3,
     min_delta_ppl=0.0,   # требуемое улучшение PPL (например, 0.1)
-    pad_idx=0,
     scheduler=None,      # опционально: ReduceLROnPlateau по val_loss
     restore_best=True
 ):
@@ -75,7 +49,7 @@ def train_next_token(
         train_loss = running / max(1, len(train_loader))
 
         # ---- EVAL ----
-        val_loss, val_acc = evaluate_next_token(model, val_loader, device, criterion, pad_idx=pad_idx)
+        val_loss, val_acc = evaluate_next_token(model, val_loader, device, criterion)
         # Perplexity из val_loss; clamp чтобы не словить overflow exp()
         val_ppl = math.exp(min(20.0, val_loss))
 
