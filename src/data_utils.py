@@ -192,9 +192,10 @@ def read_splits(path_like: str | Path, *, encoding: str = "utf-8") -> tuple[pd.D
         pd.read_csv(test_f, encoding=encoding),
     )
 
-def truncate(data, ratio):
+def truncate_ratio_and_clear(data, ratio):
     size = int(len(data) * ratio)
-    return data[:size]
+    data = data[:size]
+    return [item for item in data if isinstance(item, str)]
 
 
 # ---------- Точка входа ----------
