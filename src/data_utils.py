@@ -203,8 +203,8 @@ def merge_twits(
     df: pd.DataFrame,
     user_col: str = "user",
     text_col: str = "text",
-    sep: str = ".",
-    max_tweets_per_author: int = 5   # None = без лимита
+    sep: str = " ",
+    max_tweets_per_author: int = 3   # None = без лимита
 ) -> List[str]:
     """
     Склеивает твиты по авторам в порядке следования строк.
