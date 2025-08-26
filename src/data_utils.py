@@ -2,6 +2,7 @@ import re
 import json
 import time
 from pathlib import Path
+from typing import List
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -197,6 +198,30 @@ def truncate_ratio_and_clear(data, ratio):
     data = data[:size]
     return [item for item in data if isinstance(item, str)]
 
+
+def merge_twits(
+    df: pd.DataFrame,
+    user_col: str = "user",
+    text_col: str = "text",
+    sep: str = "\n",
+) -> List[str]:
+    """
+    Склеивает тексты твитов по авторам без хронологической сортировки.
+    Сохраняется порядок строк как в исходном df и порядок авторов по их первому встреченному твиту.
+    """
+    d = df[[user_col, text_col]].dropna(subset=[user_col, text_col]).copy()
+
+    # фиксируем порядок авторов по первому появлению
+    cats = pd.unique(d[user_col])
+    d[user_col] = pd.Categorical(d[user_col], categories=cats, ordered=True)
+
+    # склейка твитов автора в порядке следования строк
+    merged = (
+        d.groupby(user_col, sort=False, observed=True)[text_col]
+         .agg(lambda s: sep.join(map(str, s)))
+         .tolist()
+    )
+    return merged
 
 # ---------- Точка входа ----------
 if __name__ == "__main__":
