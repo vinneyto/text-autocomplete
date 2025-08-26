@@ -203,25 +203,34 @@ def merge_twits(
     df: pd.DataFrame,
     user_col: str = "user",
     text_col: str = "text",
-    sep: str = "\n",
+    sep: str = ".",
+    max_tweets_per_author: int = 5   # None = без лимита
 ) -> List[str]:
     """
-    Склеивает тексты твитов по авторам без хронологической сортировки.
-    Сохраняется порядок строк как в исходном df и порядок авторов по их первому встреченному твиту.
+    Склеивает твиты по авторам в порядке следования строк.
+    На одного автора берёт не более max_tweets_per_author твитов (по умолчанию 5).
+    Возвращает список строк: по одному объединённому тексту на автора.
     """
-    d = df[[user_col, text_col]].dropna(subset=[user_col, text_col]).copy()
+    d = df[[user_col, text_col]].dropna(subset=[user_col, text_col])
 
-    # фиксируем порядок авторов по первому появлению
+    # порядок авторов = порядок первого появления
     cats = pd.unique(d[user_col])
     d[user_col] = pd.Categorical(d[user_col], categories=cats, ordered=True)
 
-    # склейка твитов автора в порядке следования строк
+    # ограничение твитов на автора (очень быстро)
+    if max_tweets_per_author is not None:
+        if max_tweets_per_author <= 0:
+            return []
+        d = d.groupby(user_col, sort=False, observed=True).head(max_tweets_per_author)
+
+    # склейка твитов автора
     merged = (
         d.groupby(user_col, sort=False, observed=True)[text_col]
          .agg(lambda s: sep.join(map(str, s)))
          .tolist()
     )
     return merged
+
 
 # ---------- Точка входа ----------
 if __name__ == "__main__":
