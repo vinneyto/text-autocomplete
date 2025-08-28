@@ -1,0 +1,15 @@
+{
+  "model": {
+    "type": "WordPiece",
+    "unk_token": "[UNK]",
+    "vocab": {
+      "[PAD]": 0,
+      "[UNK]": 100,
+      "[CLS]": 101,
+      "[SEP]": 102,
+      "[MASK]": 103,
+      "hello": 7592,
+      "world": 2088
+    }
+  }
+}
