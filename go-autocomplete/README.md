@@ -1,6 +1,6 @@
 # Go Autocomplete Service
 
-This example web service loads an ONNX model and exposes a single HTTP endpoint for text autocompletion.
+This example web service loads an ONNX model and exposes a single HTTP endpoint for text autocompletion using the [Echo](https://echo.labstack.com/) framework.
 
 ## Usage
 
@@ -22,3 +22,4 @@ This example web service loads an ONNX model and exposes a single HTTP endpoint 
 The response is a JSON object with the predicted completion.
 
 > The repository does not contain the actual model weights. Export them using `scripts/export_to_onnx.py`.
+
